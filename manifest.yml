@@ -1,0 +1,6 @@
+---
+applications:
+- name: mywebsite
+  memory: 125M
+  disk_quota: 125M
+  builpacks: nodejs_buildpack

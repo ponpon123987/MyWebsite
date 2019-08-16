@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Device Connectivity</title>
+    <script>
+        var ssoUri = 'https://portal-sso.wise-paas.io';
+        var redirectUriAfterLogin = 'https://mywebsite.wise-paas.io';
+        var redirectUriAfterLogout = 'https://mywebsite.wise-paas.io';
+    </script>
+              
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+    <nav id="navbar">	
+        <div class="container">
+            <div class="logo">
+                <img src="images/wise-paas-logo.png" alt="Wise-PaaS Logo">
+            </div>
+            <!---->
+            <div>
+                <ul>
+                    <li><a href="https://mywebsite.wise-paas.io">Home</a></li>
+                    <li><a href="https://www.advantech.tw/" target="_blank">About</a></li>
+                    <li><a href="https://www.advantech.tw/embedded-boards-design-in-services/wisepaas" target="_blank">Services</a></li>
+                    <li id="loginNav"><a href="https://portal-sso.wise-paas.io/web/signIn.html?redirectUri=https://mywebsite.wise-paas.io">Login</a></li>
+                    <li id="logoutNav"><a href="https://portal-sso.wise-paas.io/web/signOut.html?redirectUri=https://mywebsite.wise-paas.io">Logout</a></li>
+                </ul>
+            </div>
+			
+        </div>
+    </nav>
+    <section id="microService">
+        <br>
+        <div  class="container">
+            <!--Service Input Form-->
+            <div id='inputservice'>
+                <img src="images/rabbitmq-logo.png" alt="rabbitmq-logo">
+                <h2>Generate RabbitMQ Source</h2>
+                <div class="form-group">
+                    <label>Service Name: </label>
+                    <input id="serviceName" type="text" name="serviceName" placeholder="p-rabbitmq">
+                </div>
+                <div class="form-group">
+                    <label>Topic: </label>
+                    <input id="topic" type="text" name="topic" placeholder="/topicName">
+                </div>
+                <div class="form-group">
+                    <label>Application Name: </label>
+                    <input id="appName" type="text" name="appName" placeholder="myApp">
+                </div>
+                <button id='getservice'>Generate</button> 
+            </div>   
+            <!--Code Block-->
+            <div id='code-panel'>
+                    <h2 id="panelTitle">README</h2>
+                    <pre>
+                        <code id="cmdLogin"></code>
+                    </pre>
+                    <pre>
+                        <code id="cmdCS"></code>
+                    </pre>
+                    <div class="sampleSource">
+                        <h2 id="sampleCode">Source Code</h2>
+                        <pre>
+                            <code id="printSrcCode">
+    I'm Source Code</code>
+                        </pre>
+                        <h2 id="sampleManifest">Manifest</h2>
+                        <pre>
+                            <code id="printManifest">
+    I'm Manifest</code>
+                        </pre>
+                        <h3>Do you want to deploy your app? <a class="learnMore" href="#">Learn More</a></h3>
+                    </div>
+            </div>
+            
+        </div>
+        <br>
+        
+    </section>
+    <footer id="main-footer">
+        <p>Copyright &copy; 2019 Advantech</p>
+    </footer>
+</body>
+
+<script>
+    $(document).ready(()=>{
+        const sampleText1 = 
+        `
+    Welcome to WISE-PaaS Quick Start Site
+    We provide: 
+        - JavaScript / Python source codes
+        Example: IoT Hub Connection
+
+        - Step-by-Step deploymeny tutorial`;
+
+        const sampleText2 = `
+    The source codes are provided by Advantech,
+    Please do not copy or share without citation.`;
+
+        $("#cmdLogin").text(sampleText1);
+        $("#cmdCS").text(sampleText2);
+        $(".sampleSource").hide();
+
+        $.ajax({
+				url: ssoUri + '/v2.0/users/me',
+				method: 'GET',
+				xhrFields: {
+					withCredentials: true
+				}
+			}).done(function(){
+				isLogin = true;
+				$("#loginNav").hide();
+				$("#logoutNav").show();
+			}).fail(function(){
+				isLogin = false;
+				$("#loginNav").show();
+				$("#logoutNav").hide();
+			})
+
+
+        $("#getservice").click(()=>{
+            $("#microService").height("max-content");
+            $(".sampleSource").show();
+            $("#panelTitle").text("Command");
+            let cookie = {};
+            document.cookie.split(';').forEach(function(el) {
+                let [k,v] = el.split('=');
+                cookie[k.trim()] = v;
+            })
+            var account = cookie.WISEUser
+            var hostname = window.location.hostname
+            const loginCmd =`
+    cf login -a api.`+hostname.split('.',3)[1]+`.`+hostname.split('.',3)[2]+` -u `+account + ` -p WISE-PaaS/EnSaaS-password`;
+            $("#cmdLogin").text(loginCmd);
+            
+            var service_name = $("#serviceName").val();
+            const csCmd = `
+    cf create-service p-rabbitmq standard ${service_name}`;
+            $("#cmdCS").text(csCmd)
+        
+            var topic = $("#topic").val()
+            fetch('/indexFile',{method:'POST',headers: {'Content-Type': 'application/json'},body:JSON.stringify({type:'rabbitmq',serviceName:'p-rabbitmq',topic:topic})})
+            .then((res)=>{
+                res.text()
+                .then((body)=>{
+                    $("#printSrcCode").text(body)
+                })
+        
+            })
+
+            var appName = $("#appName").val()
+            fetch('/manifest',{method:'POST',headers: {'Content-Type': 'application/json'},body:JSON.stringify({appName:appName})})
+            .then((res)=>{
+                res.text()
+                .then((body)=>{
+                    $("#printManifest").text(body)
+                })
+            })
+        })
+    })
+</script>
+
+</html>
